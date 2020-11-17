@@ -27,8 +27,8 @@ services:
     image: yandex/clickhouse-server:latest
     volumes:
       - event-data:/var/lib/clickhouse
-      - $PWD/clickhouse/docker_related_config.xml:/etc/clickhouse-server/config.d/docker_related_config.xml:ro
-      - $PWD/clickhouse/docker_related_user_config.xml:/etc/clickhouse-server/users.d/docker_related_user_config.xml:ro
+      - clickhouse-config.xml:/etc/clickhouse-server/config.d/docker_related_config.xml:ro
+      - clickhouse-user-config.xml:/etc/clickhouse-server/users.d/docker_related_user_config.xml:ro
     tmpfs:
       - /var/log/clickhouse-server
     ulimits:
@@ -58,8 +58,8 @@ services:
     restart: always
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.plausible.rule=Host(`127.0.0.1.nip.io`)" # TODO: Change with your own domain
-      - "traefik.http.routers.plausible.entrypoints=web" # websecure
+      - "traefik.http.routers.plausible.rule=Host(`${DOMAIN}`)" # TODO: Change with your own domain
+      - "traefik.http.routers.plausible.entrypoints=websecure"
       - "traefik.http.services.plausible.loadbalancer.server.port=8000"
 
   traefik:
@@ -67,15 +67,30 @@ services:
     container_name: traefik
     ports:
       - "80:80"
-      #- "443:443" https
+      - "443:443"
       - "8080:8080" # TODO: Remove in production
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - $PWD/traefik/traefik.toml:/etc/traefik/traefik.toml
-      - $PWD/traefik/acme.json:/acme.json
+      - acme.json:/acme.json
     restart: always
     networks:
       - web
+    command:
+      - "--api.insecure=true" # TODO: Remove in production
+      - "--api.dashboard=true" # TODO: Remove in production
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=web"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.websecure.http.tls.certResolver=default"
+      - "--certificatesresolvers.default.acme.tlschallenge=true"
+      - "--certificatesresolvers.default.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.default.acme.email=${ADMIN_USER_EMAIL}" # TODO: Change with your own email
+      - "--certificatesresolvers.default.acme.storage=acme.json"
 
 volumes:
   db-data:
