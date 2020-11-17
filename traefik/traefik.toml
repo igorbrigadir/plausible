@@ -7,12 +7,18 @@
 #          to = "websecure"
 #          scheme = "https"
 #          permanent = true
+    [entryPoints.web.forwardedHeaders]
+      #trustedIPs = ["127.0.0.1/32", "192.168.1.7"]
+      insecure = true
 
 #[entryPoints.websecure]
 #address = ":443"
 #  [entryPoints.websecure.http.tls]
 #    certResolver = "default"
-    
+
+
+
+
 [providers]
   [providers.docker]
     watch = true
