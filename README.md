@@ -10,7 +10,10 @@ You will need a server with a domain or subdomain set up and accessible from the
 
 Copy `example.env` and create your own `.env` file. Set all the options like `DOMAIN` and `ADMIN_USER_EMAIL` and all the other settings in `.env`. Follow Plausible instructions for configuring. <https://docs.plausible.io/self-hosting/>
 
-Run `docker network create web` first if running this for the first time.
+If running this for the first time:
+
+* Run `docker network create web`
+* then `chmod 600 acme.json`
 
 Launch everything: 
 
