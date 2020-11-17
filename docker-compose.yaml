@@ -1,5 +1,7 @@
 version: "3.8"
+
 services:
+
   mail:
     image: bytemark/smtp
     restart: always
@@ -9,7 +11,6 @@ services:
     environment:
       - GEOIPUPDATE_EDITION_IDS=GeoLite2-Country
       - GEOIPUPDATE_FREQUENCY=168 # update every 7 days
-    env_file: .env
     volumes:
       - geoip:/usr/share/GeoIP
 
@@ -38,29 +39,6 @@ services:
     networks:
       - internal
     restart: always
-
-  plausible:
-    image: plausible/analytics:latest
-    command: sh -c "sleep 10 && /entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh db init-admin && /entrypoint.sh run"
-    depends_on:
-      - plausible_db
-      - plausible_events_db
-      - mail
-      - traefik
-    env_file: .env
-    networks:
-      - internal
-      - web
-    environment:
-      - GEOLITE2_COUNTRY_DB=/geoip/GeoLite2-Country.mmdb
-    volumes:
-      - geoip:/geoip:ro
-    restart: always
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.plausible.rule=Host(`${DOMAIN}`)" # TODO: Change with your own domain
-      - "traefik.http.routers.plausible.entrypoints=websecure"
-      - "traefik.http.services.plausible.loadbalancer.server.port=8000"
 
   traefik:
     image: traefik:v2.2
@@ -91,6 +69,28 @@ services:
       - "--certificatesresolvers.default.acme.httpchallenge.entrypoint=web"
       - "--certificatesresolvers.default.acme.email=${ADMIN_USER_EMAIL}" # TODO: Change with your own email
       - "--certificatesresolvers.default.acme.storage=acme.json"
+
+  plausible:
+    image: plausible/analytics:latest
+    command: sh -c "sleep 10 && /entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh db init-admin && /entrypoint.sh run"
+    depends_on:
+      - plausible_db
+      - plausible_events_db
+      - traefik
+      - mail
+    networks:
+      - internal
+      - web
+    environment:
+      - GEOLITE2_COUNTRY_DB=/geoip/GeoLite2-Country.mmdb
+    volumes:
+      - geoip:/geoip:ro
+    restart: always
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.plausible.rule=Host(`${DOMAIN}`)" # TODO: Change with your own domain
+      - "traefik.http.routers.plausible.entrypoints=websecure"
+      - "traefik.http.services.plausible.loadbalancer.server.port=8000"
 
 volumes:
   db-data:
